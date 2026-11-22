@@ -7,7 +7,9 @@
   "use strict";
 
   var MIN = 60 * 1000;
-  var STORAGE_KEY = "beacon-kds-v1";
+  // v2: items now carry a category (for the two stations), so saved
+  // v1 state is discarded and the demo reseeds fresh.
+  var STORAGE_KEY = "beacon-kds-v2";
   var STALE_AFTER = 3 * 60 * MIN; // saved demo older than 3h -> reseed
 
   // Age thresholds (minutes): green under 10, amber 10-15, red over 15.
@@ -15,19 +17,29 @@
   var LATE_AT = 15;
 
   // Quick-pick menu for the "add test order" form.
+  // Each group carries one category — that is what the station
+  // filter uses (see orders.js). Keep the set small.
   var MENU = [
-    { group: "Pizzas", sized: true, items: [
+    { group: "Pizzas", category: "pizza", sized: true, items: [
       "Pepperoni", "Cheese", "Supreme", "Meat Lovers", "Hawaiian",
       "Veggie", "BBQ Chicken", "Buffalo Chicken", "Margherita", "The Beacon"
     ]},
-    { group: "Wings", sized: false, items: [
+    { group: "Wings", category: "wings", sized: false, items: [
       "Bone-In Wings 6 — Buffalo", "Bone-In Wings 12 — Buffalo",
       "Boneless Wings 6 — BBQ", "Boneless Wings 12 — BBQ",
       "Boneless Wings 12 — Garlic Parm"
     ]},
-    { group: "Salads & Sides", sized: false, items: [
-      "House Salad", "Caesar Salad", "Breadsticks",
-      "Mozzarella Sticks", "Garlic Knots"
+    { group: "Sandwiches", category: "sandwich", sized: false, items: [
+      "Prime Dip", "Turkey Club", "Italian Sub", "Meatball Sub"
+    ]},
+    { group: "Salads", category: "salad", sized: false, items: [
+      "House Salad", "Caesar Salad"
+    ]},
+    { group: "Sides", category: "side", sized: false, items: [
+      "Breadsticks", "Mozzarella Sticks", "Garlic Knots"
+    ]},
+    { group: "Drinks", category: "drink", sized: false, items: [
+      "Fountain Drink", "Iced Tea", "Bottled Water"
     ]}
   ];
   var SIZES = ["S", "M", "L", "XL"];
@@ -93,6 +105,70 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 4000);
   }
 
+  /* ---------- stations (two kitchen monitors) ---------- */
+
+  var STATION_KEY = "beacon-kds-station";
+  var station = "all"; // "all" | "nopizza"
+
+  // Main monitor shows everything; second monitor shows everything
+  // except pizzas. The URL parameter wins on load (?station=all or
+  // ?station=nopizza); otherwise the saved choice on this device.
+  function resolveStation() {
+    var param = null;
+    try {
+      param = new URLSearchParams(window.location.search).get("station");
+    } catch (e) { param = null; }
+    if (param === "all" || param === "nopizza") return param;
+    try {
+      var saved = localStorage.getItem(STATION_KEY);
+      if (saved === "all" || saved === "nopizza") return saved;
+    } catch (e) { /* no storage — default station */ }
+    return "all";
+  }
+
+  // Save the choice on this device and keep the URL honest so a
+  // copied link opens the same station. (No sync between monitors
+  // yet — each screen keeps its own copy; see README.)
+  function persistStation() {
+    try { localStorage.setItem(STATION_KEY, station); } catch (e) {}
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set("station", station);
+      history.replaceState(null, "", url.toString());
+    } catch (e) { /* file:// or old browser — station still works */ }
+  }
+
+  function setStation(next) {
+    if (next !== "all" && next !== "nopizza") return;
+    station = next;
+    persistStation();
+    updateStationUI();
+    render();
+  }
+
+  function updateStationUI() {
+    var label = $("station-label");
+    if (station === "nopizza") {
+      label.textContent = "NO PIZZA — WINGS / SANDWICHES";
+      label.classList.add("nopizza");
+      document.title = "Beacon Kitchen — No Pizza";
+    } else {
+      label.textContent = "ALL ORDERS";
+      label.classList.remove("nopizza");
+      document.title = "Beacon Kitchen — All Orders";
+    }
+    document.querySelectorAll("[data-station-btn]").forEach(function (btn) {
+      btn.classList.toggle("selected", btn.dataset.stationBtn === station);
+    });
+  }
+
+  // The tickets this station shows. "all" shows every open order;
+  // "nopizza" shows only tickets with at least one non-pizza item.
+  function visibleOrders() {
+    if (station === "all") return state.orders;
+    return state.orders.filter(function (o) { return KDS_DATA.stationHasItems(o, station); });
+  }
+
   /* ---------- rendering ---------- */
 
   function esc(s) {
@@ -103,7 +179,10 @@
 
   function ticketHTML(order) {
     var status = statusOf(order.placedAt);
-    var items = order.items.map(function (it) {
+    // On the no-pizza station a mixed ticket shows only its
+    // non-pizza items (pizza + wings shows just the wings).
+    var shown = KDS_DATA.stationItems(order, station);
+    var items = shown.map(function (it) {
       var size = it.size ? '<span class="size">' + esc(it.size) + "</span> " : "";
       var mods = (it.mods && it.mods.length)
         ? '<div class="item-mods">' + it.mods.map(esc).join(" · ") + "</div>" : "";
@@ -130,7 +209,8 @@
 
   function render() {
     sortNewestFirst();
-    $("open-count").textContent = state.orders.length;
+    var visible = visibleOrders();
+    $("open-count").textContent = visible.length;
     $("bumped-count").textContent = state.bumpedTotal;
     var recallBtn = $("recall-btn");
     recallBtn.disabled = state.bumped.length === 0;
@@ -138,13 +218,16 @@
       ? "↩ Recall last (" + state.bumped.length + ")"
       : "↩ Recall last";
 
-    if (!state.orders.length) {
+    if (!visible.length) {
+      var sub = station === "nopizza"
+        ? "No wings, sandwiches, salads or sides on the board right now."
+        : "No open orders. Tap “+ New order” to try one.";
       gridEl.innerHTML =
         '<div class="empty"><div class="big">All caught up ✓</div>' +
-        '<div class="sub">No open orders. Tap “+ New order” to try one.</div></div>';
+        '<div class="sub">' + sub + "</div></div>";
       return;
     }
-    gridEl.innerHTML = state.orders.map(ticketHTML).join("");
+    gridEl.innerHTML = visible.map(ticketHTML).join("");
   }
 
   // Lightweight refresh: update clocks/colors without rebuilding tickets.
@@ -224,14 +307,14 @@
     $("add-order-btn").disabled = draft.items.length === 0;
   }
 
-  function addDraftItem(name, sized) {
+  function addDraftItem(name, sized, category) {
     var size = sized ? draft.size : "";
     var found = null;
     draft.items.forEach(function (it) {
       if (it.name === name && it.size === size) found = it;
     });
     if (found) { found.qty += 1; } else {
-      draft.items.push({ qty: 1, size: size, name: name, mods: [] });
+      draft.items.push({ qty: 1, size: size, name: name, category: category, mods: [] });
     }
     renderDraft();
   }
@@ -269,7 +352,11 @@
     render();
     var ticket = gridEl.querySelector('.ticket[data-id="' + order.id + '"]');
     if (ticket) ticket.classList.add("fresh-flash");
-    showToast("Order #" + order.number + " added to the board");
+    if (KDS_DATA.stationHasItems(order, station)) {
+      showToast("Order #" + order.number + " added to the board");
+    } else {
+      showToast("Order #" + order.number + " added — pizza-only, so it won't show on this screen");
+    }
   }
 
   function buildPickButtons() {
@@ -277,7 +364,8 @@
     host.innerHTML = MENU.map(function (g) {
       var btns = g.items.map(function (item) {
         return '<button class="pick-btn" data-item="' + esc(item) +
-          '" data-sized="' + (g.sized ? "1" : "0") + '">' + esc(item) + "</button>";
+          '" data-sized="' + (g.sized ? "1" : "0") +
+          '" data-category="' + esc(g.category) + '">' + esc(item) + "</button>";
       }).join("");
       return '<div class="pick-group"><h3>' + esc(g.group) + "</h3>" +
         '<div class="pick-grid">' + btns + "</div></div>";
@@ -292,6 +380,11 @@
 
     buildPickButtons();
 
+    // Station: URL parameter wins, then the saved choice on this device.
+    station = resolveStation();
+    persistStation();
+    updateStationUI();
+
     gridEl.addEventListener("click", function (e) {
       var ticket = e.target.closest(".ticket");
       if (ticket) bump(ticket.dataset.id);
@@ -305,6 +398,10 @@
     $("add-order-btn").addEventListener("click", submitOrder);
     $("recall-btn").addEventListener("click", recall);
     $("reset-btn").addEventListener("click", resetDemo);
+
+    document.querySelectorAll("[data-station-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () { setStation(btn.dataset.stationBtn); });
+    });
 
     document.querySelectorAll(".size-chip").forEach(function (chip) {
       chip.addEventListener("click", function () {
@@ -326,7 +423,7 @@
 
     $("pick-groups").addEventListener("click", function (e) {
       var btn = e.target.closest(".pick-btn");
-      if (btn) addDraftItem(btn.dataset.item, btn.dataset.sized === "1");
+      if (btn) addDraftItem(btn.dataset.item, btn.dataset.sized === "1", btn.dataset.category);
     });
 
     $("draft-items").addEventListener("click", function (e) {

@@ -65,6 +65,21 @@ header {
   white-space: nowrap;
 }
 
+/* Station label — which monitor this is, readable at a glance.
+   The no-pizza station flips to a light pill so the two monitors
+   are tell-apart-able from across the kitchen. */
+.station-label {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--red);
+  border-radius: 8px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.station-label.nopizza { background: var(--ink); color: #121110; }
+
 .header-stats {
   display: flex;
   gap: 20px;
@@ -78,6 +93,25 @@ header {
 .stat-open b { color: var(--fresh); }
 
 .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Station switcher — two big buttons, no URL retyping needed. */
+.station-switch {
+  display: flex;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.switch-btn {
+  min-height: 52px;
+  padding: 0 16px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  background: var(--panel-2);
+  border: none;
+  border-radius: 0;
+}
+.switch-btn:active { transform: scale(0.97); }
+.switch-btn.selected { background: var(--ink); color: #121110; }
 
 .btn {
   border: 2px solid var(--line);

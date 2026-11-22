@@ -21,11 +21,20 @@
        placedAt: 1732312345678,  // epoch ms the order was placed
        items: [
          { qty: 1, size: "L", name: "Pepperoni Pizza",
-           mods: ["Extra cheese", "Well done"] },
+           category: "pizza", mods: ["Extra cheese", "Well done"] },
          { qty: 1, size: "",  name: "Boneless Wings 12 — BBQ",
-           mods: [] }
+           category: "wings", mods: [] }
        ]
      }
+
+   CATEGORIES — every item carries one of:
+     "pizza" | "wings" | "sandwich" | "salad" | "side" | "drink"
+   The category drives the two kitchen stations: the main monitor
+   shows everything, the second monitor shows everything EXCEPT
+   pizzas. When Square is wired in, map each Square line item to
+   a category here. An item with no category (or an unknown one)
+   is treated as NOT a pizza, so it shows on both screens —
+   nothing is ever hidden by a missing category.
 
    No Square credentials exist yet — do NOT attempt a live
    Square connection from this file until the owner authorizes
@@ -46,52 +55,75 @@ window.KDS_DATA = (function () {
         id: "ord-214", number: 214, name: "Mike R.", type: "takeout",
         placedAt: now - 2 * MIN,
         items: [
-          { qty: 1, size: "L", name: "Pepperoni Pizza", mods: [] },
-          { qty: 1, size: "", name: "Boneless Wings 12 — BBQ", mods: ["Extra ranch"] }
+          { qty: 1, size: "L", name: "Pepperoni Pizza", category: "pizza", mods: [] },
+          { qty: 1, size: "", name: "Boneless Wings 12 — BBQ", category: "wings", mods: ["Extra ranch"] }
         ]
       },
       {
         id: "ord-213", number: 213, name: "Table 4", type: "dine-in",
         placedAt: now - 6 * MIN,
         items: [
-          { qty: 1, size: "M", name: "Supreme Pizza", mods: [] },
-          { qty: 1, size: "", name: "House Salad", mods: ["Ranch on side"] }
+          { qty: 1, size: "M", name: "Supreme Pizza", category: "pizza", mods: [] },
+          { qty: 1, size: "", name: "House Salad", category: "salad", mods: ["Ranch on side"] }
         ]
       },
       {
         id: "ord-212", number: 212, name: "Sarah K.", type: "takeout",
         placedAt: now - 11 * MIN,
         items: [
-          { qty: 1, size: "XL", name: "Meat Lovers Pizza", mods: ["Well done"] },
-          { qty: 1, size: "", name: "Breadsticks", mods: [] }
+          { qty: 1, size: "XL", name: "Meat Lovers Pizza", category: "pizza", mods: ["Well done"] },
+          { qty: 1, size: "", name: "Breadsticks", category: "side", mods: [] }
         ]
       },
       {
         id: "ord-211", number: 211, name: "Table 7", type: "dine-in",
         placedAt: now - 14 * MIN,
         items: [
-          { qty: 1, size: "M", name: "Hawaiian Pizza", mods: [] },
-          { qty: 1, size: "M", name: "Veggie Pizza", mods: ["No onions"] },
-          { qty: 1, size: "", name: "Caesar Salad", mods: [] }
+          { qty: 1, size: "M", name: "Hawaiian Pizza", category: "pizza", mods: [] },
+          { qty: 1, size: "M", name: "Veggie Pizza", category: "pizza", mods: ["No onions"] },
+          { qty: 1, size: "", name: "Caesar Salad", category: "salad", mods: [] }
         ]
       },
       {
         id: "ord-210", number: 210, name: "Dave P.", type: "takeout",
         placedAt: now - 19 * MIN,
         items: [
-          { qty: 1, size: "L", name: "BBQ Chicken Pizza", mods: [] },
-          { qty: 1, size: "", name: "Bone-In Wings 6 — Buffalo", mods: ["Extra hot"] }
+          { qty: 1, size: "L", name: "BBQ Chicken Pizza", category: "pizza", mods: [] },
+          { qty: 1, size: "", name: "Bone-In Wings 6 — Buffalo", category: "wings", mods: ["Extra hot"] }
         ]
       },
       {
         id: "ord-209", number: 209, name: "Table 2", type: "dine-in",
         placedAt: now - 26 * MIN,
         items: [
-          { qty: 1, size: "M", name: "Margherita Pizza", mods: ["Extra cheese"] },
-          { qty: 1, size: "", name: "Mozzarella Sticks", mods: [] }
+          { qty: 1, size: "M", name: "Margherita Pizza", category: "pizza", mods: ["Extra cheese"] },
+          { qty: 1, size: "", name: "Mozzarella Sticks", category: "side", mods: [] }
         ]
       }
     ];
+  }
+
+  /* ---------- stations (two kitchen monitors) ---------- */
+
+  // Only an explicit "pizza" category hides an item from the
+  // no-pizza screen. Missing/unknown category -> shows everywhere.
+  function isPizzaItem(item) {
+    return !!(item && item.category === "pizza");
+  }
+
+  // The items of one order that belong on a station's screen.
+  // "all" shows everything; "nopizza" shows only non-pizza items,
+  // so a pizza + wings ticket shows just the wings there.
+  function stationItems(order, station) {
+    if (!order || !Array.isArray(order.items)) return [];
+    if (station !== "nopizza") return order.items;
+    return order.items.filter(function (it) { return !isPizzaItem(it); });
+  }
+
+  // Whether a ticket has anything to show on a station at all.
+  // A pizza-only ticket has nothing on the no-pizza screen.
+  function stationHasItems(order, station) {
+    return stationItems(order, station).length > 0;
   }
 
   /* The app's only entry point for order data. Returns a Promise
@@ -103,6 +135,9 @@ window.KDS_DATA = (function () {
 
   return {
     fetchOrders: fetchOrders,
-    buildDemoOrders: buildDemoOrders
+    buildDemoOrders: buildDemoOrders,
+    isPizzaItem: isPizzaItem,
+    stationItems: stationItems,
+    stationHasItems: stationHasItems
   };
 })();

@@ -24,6 +24,26 @@ phone, or computer:
 - Or serve it: `cd ~/workspace/beacon-kds && python3 -m http.server 8000`
   then visit http://localhost:8000
 
+## Two stations (two kitchen monitors)
+
+- **Main monitor — everything:** `index.html` or `?station=all`
+  (the default). Shows every open ticket, all items.
+- **Second monitor — no pizza:** `?station=nopizza`. Shows only
+  tickets with at least one non-pizza item, and on those tickets
+  shows ONLY the non-pizza items — so a pizza + wings ticket
+  appears there showing just the wings. A pizza-only ticket
+  doesn't appear on that screen at all.
+- The header says which station the screen is at a glance:
+  **ALL ORDERS** (red pill) vs **NO PIZZA — WINGS / SANDWICHES**
+  (light pill). The page title says it too.
+- The **ALL ORDERS / NO PIZZA** buttons in the header switch a
+  monitor without retyping the URL. The choice is saved on that
+  device (localStorage), so a refresh keeps it. The URL parameter
+  wins on load if one is present.
+- Every item carries a `category` (`pizza`, `wings`, `sandwich`,
+  `salad`, `side`, `drink`) — that is what the filter uses, not
+  the item name. An item with no category shows on both screens.
+
 ## What it does
 
 - **Tickets in a grid, newest first.** Each ticket shows the order
@@ -39,8 +59,9 @@ phone, or computer:
 - **Demo mode:** loads with 6 realistic sample orders at staggered
   ages so all three colors show. "Reset demo" restores them.
 - **Add test order:** "+ New order" opens a quick-pick form — pick
-  a pizza size, tap items (pizzas, wings, salads/sides), type a
-  name or table, choose dine-in/takeout, add it to the board.
+  a pizza size, tap items (pizzas, wings, sandwiches, salads,
+  sides, drinks), type a name or table, choose dine-in/takeout,
+  add it to the board.
 - State (open orders, bumped count) survives a page refresh via
   localStorage. A saved demo older than 3 hours is treated as
   stale and reseeded on the next load.
@@ -50,13 +71,17 @@ phone, or computer:
 - No Square connection — no credentials exist yet. When the owner
   authorizes a Square developer app, only `orders.js` changes.
 - No ticket printer, no sounds, no multi-screen sync. Each screen
-  runs its own copy for now.
+  runs its own copy for now: **bumping a ticket on one monitor
+  does NOT remove it from the other** — state lives in each
+  device's localStorage, so the two monitors don't talk to each
+  other yet. Live sync comes later with the Square integration.
 
 ## Questions for Vince (things that would change the design)
 
-1. **How are the two back monitors split?** Same orders on both,
-   or one screen for pizzas and one for everything else (wings,
-   salads, apps)? If split, what goes where?
+1. **How are the two back monitors split? — ANSWERED Nov 21.**
+   Main monitor shows EVERYTHING (so nothing gets missed);
+   second monitor shows everything EXCEPT pizzas (wings,
+   sandwiches, salads, sides). Built as the two stations above.
 2. **Ticket printer too?** Does the kitchen also print paper
    tickets today, or is the screen the only ticket?
 3. **Order numbers:** do Square order numbers reset daily, and

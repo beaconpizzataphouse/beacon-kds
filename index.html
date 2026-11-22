@@ -13,12 +13,17 @@
   <header>
     <div class="brand">BEACON <span>KITCHEN</span></div>
     <div class="demo-badge">DEMO — NOT LIVE ORDERS</div>
+    <div class="station-label" id="station-label">ALL ORDERS</div>
     <div class="header-stats">
       <span class="clock" id="clock">--:--</span>
       <span class="stat-open">OPEN <b id="open-count">0</b></span>
       <span>BUMPED <b id="bumped-count">0</b></span>
     </div>
     <div class="header-actions">
+      <div class="station-switch" role="group" aria-label="Station">
+        <button class="switch-btn" data-station-btn="all">ALL ORDERS</button>
+        <button class="switch-btn" data-station-btn="nopizza">NO PIZZA</button>
+      </div>
       <button class="btn" id="recall-btn" disabled>↩ Recall last</button>
       <button class="btn" id="reset-btn">Reset demo</button>
       <button class="btn btn-primary" id="new-order-btn">+ New order</button>
