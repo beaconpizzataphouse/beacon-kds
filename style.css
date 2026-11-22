@@ -323,6 +323,8 @@ header {
   text-align: center;
 }
 .pick-btn:active { background: var(--red); border-color: var(--red); color: #fff; }
+.pick-price { display: block; font-size: 0.95rem; font-weight: 700; color: var(--muted); margin-top: 2px; }
+.pick-btn:active .pick-price { color: #fff; }
 
 .order-draft {
   border-top: 2px solid var(--line);
@@ -340,6 +342,16 @@ header {
 }
 .draft-line .nm { flex: 1; }
 .draft-line .qty { color: var(--red-bright); font-weight: 800; }
+.draft-line .draft-price { color: var(--muted); font-weight: 700; }
+.draft-total {
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px solid var(--line);
+  margin-top: 8px;
+  padding-top: 10px;
+  font-size: 1.3rem;
+}
+.draft-total b { color: var(--ink); }
 .mini-btn {
   min-width: 44px;
   min-height: 44px;

@@ -7,42 +7,103 @@
   "use strict";
 
   var MIN = 60 * 1000;
-  // v2: items now carry a category (for the two stations), so saved
-  // v1 state is discarded and the demo reseeds fresh.
-  var STORAGE_KEY = "beacon-kds-v2";
+  // v3: demo data is now the real Beacon menu from the Square
+  // catalog export (real sizes 12"/16"/18"/GF 10", real prices),
+  // so saved v2 state with the old guessed items is discarded
+  // and the demo reseeds fresh.
+  var STORAGE_KEY = "beacon-kds-v3";
   var STALE_AFTER = 3 * 60 * MIN; // saved demo older than 3h -> reseed
 
   // Age thresholds (minutes): green under 10, amber 10-15, red over 15.
   var WARN_AT = 10;
   var LATE_AT = 15;
 
-  // Quick-pick menu for the "add test order" form.
+  // Quick-pick menu for the "add test order" form — the REAL Beacon
+  // menu from the Square catalog export (square-catalog-2026-11-21.csv,
+  // 351 active items), with real Square prices.
   // Each group carries one category — that is what the station
-  // filter uses (see orders.js). Keep the set small.
+  // filter uses (see orders.js). Pizzas carry one price per size
+  // (12"/16"/18" plus GF 10" cauliflower crust); everything else
+  // carries a single price. Prices are stored on each added item
+  // (the future order screen will need them) and shown on the
+  // form; kitchen tickets themselves don't show prices.
   var MENU = [
     { group: "Pizzas", category: "pizza", sized: true, items: [
-      "Pepperoni", "Cheese", "Supreme", "Meat Lovers", "Hawaiian",
-      "Veggie", "BBQ Chicken", "Buffalo Chicken", "Margherita", "The Beacon"
+      { n: "Mexican", p: { '12"': 21.95, '16"': 25.95, '18"': 28.95, 'GF 10"': 21.95 } },
+      { n: "BBQ Chicken", p: { '12"': 22.95, '16"': 26.95, '18"': 29.95, 'GF 10"': 20.95 } },
+      { n: "Beacon Supreme", p: { '12"': 25.95, '16"': 29.95, '18"': 32.95, 'GF 10"': 24.95 } },
+      { n: "Bernie", p: { '12"': 21.95, '16"': 25.95, '18"': 28.95, 'GF 10"': 20.95 } },
+      { n: "Build Your Own", p: { '12"': 16.95, '16"': 20.95, '18"': 23.95, 'GF 10"': 15.95 } },
+      { n: "Classic Pepperoni", p: { '12"': 18.95, '16"': 22.95, '18"': 25.95, 'GF 10"': 17.95 } },
+      { n: "Hawaiian", p: { '12"': 20.95, '16"': 24.95, '18"': 27.95, 'GF 10"': 19.95 } },
+      { n: "Jibe", p: { '12"': 21.95, '16"': 25.95, '18"': 29.95, 'GF 10"': 20.95 } },
+      { n: "Mediterranean", p: { '12"': 22.95, '16"': 26.95, '18"': 29.95, 'GF 10"': 21.95 } },
+      { n: "Spicy Luau", p: { '12"': 21.95, '16"': 25.95, '18"': 28.95, 'GF 10"': 20.95 } },
+      { n: "Tree Hugger", p: { '12"': 20.95, '16"': 24.95, '18"': 27.95, 'GF 10"': 19.95 } },
+      { n: "Ultimate Cheese", p: { '12"': 16.95, '16"': 20.95, '18"': 23.95, 'GF 10"': 16.95 } },
+      { n: "Buffalo Chicken", p: { '12"': 22.95, '16"': 26.95, '18"': 29.95, 'GF 10"': 20.95 } },
+      { n: "Chicken Bacon Ranch", p: { '12"': 22.95, '16"': 26.95, '18"': 29.95, 'GF 10"': 22.95 } }
     ]},
     { group: "Wings", category: "wings", sized: false, items: [
-      "Bone-In Wings 6 — Buffalo", "Bone-In Wings 12 — Buffalo",
-      "Boneless Wings 6 — BBQ", "Boneless Wings 12 — BBQ",
-      "Boneless Wings 12 — Garlic Parm"
+      { n: "Bone-in Wings", p: 18.99 },
+      { n: "Boneless Wings 5", p: 7.99 },
+      { n: "Boneless Wings 10", p: 13.99 },
+      { n: "Boneless Wings 15", p: 18.99 }
     ]},
     { group: "Sandwiches", category: "sandwich", sized: false, items: [
-      "Prime Dip", "Turkey Club", "Italian Sub", "Meatball Sub"
+      { n: "BLT", p: 11.99 },
+      { n: "Beacon Club", p: 13.99 },
+      { n: "Beacon Prime Dip", p: 16.99 },
+      { n: "Build Your Own Sandwich", p: 10.99 },
+      { n: "Grilled Chicken Breast", p: 13.99 },
+      { n: "Hawaiian Sandwich", p: 14.99 },
+      { n: "Italian Sub", p: 13.99 },
+      { n: "Meatball Sub", p: 14.99 },
+      { n: "PB&J", p: 4.99 }
+    ]},
+    { group: "Pasta", category: "pasta", sized: false, items: [
+      { n: "Bernie Pasta", p: 18.99 },
+      { n: "Build Your Own Pasta", p: 12.99 },
+      { n: "Spaghetti", p: 14.99 },
+      { n: "Spaghetti & Meatballs", p: 16.99 },
+      { n: "Spaghetti & Italian Sausage", p: 16.99 },
+      { n: "Spaghetti Alfredo", p: 15.99 },
+      { n: "Spaghetti Alfredo Chicken Broccoli", p: 18.99 }
     ]},
     { group: "Salads", category: "salad", sized: false, items: [
-      "House Salad", "Caesar Salad"
+      { n: "Salad Bar — All You Can Eat", p: 15.99 },
+      { n: "Salad Bar — Single Serve", p: 9.99 },
+      { n: "Salad — To Go", p: 13.99 }
     ]},
-    { group: "Sides", category: "side", sized: false, items: [
-      "Breadsticks", "Mozzarella Sticks", "Garlic Knots"
+    { group: "Apps & Sides", category: "side", sized: false, items: [
+      { n: "Garlic Cheesy Bread", p: 12.99 },
+      { n: "Potato Skins", p: 12.99 },
+      { n: "Parmesan Garlic Bites", p: 7.99 },
+      { n: "Chips", p: 1.49 },
+      { n: "Ranch", p: 0.50 },
+      { n: "Marinara", p: 0.25 }
+    ]},
+    { group: "Soups", category: "soup", sized: false, items: [
+      { n: "Clam Chowder", p: 7.99 },
+      { n: "Smoked Brisket Chili", p: 9.99 }
+    ]},
+    { group: "Dessert", category: "dessert", sized: false, items: [
+      { n: "BIG Cookies", p: 2.50 },
+      { n: "Cinnamon Sugar Bites", p: 8.99 }
     ]},
     { group: "Drinks", category: "drink", sized: false, items: [
-      "Fountain Drink", "Iced Tea", "Bottled Water"
+      { n: "20 oz Fountain Drink", p: 2.75 },
+      { n: "16 oz Fountain Drink", p: 2.50 },
+      { n: "20 oz Bottled Soda", p: 2.95 },
+      { n: "Water", p: 1.50 },
+      { n: "Coffee", p: 3.00 },
+      { n: "Pure Leaf", p: 2.95 }
     ]}
   ];
-  var SIZES = ["S", "M", "L", "XL"];
+  // Real pizza sizes (chips live in index.html): 12"/16"/18"
+  // regular crust, GF 10" cauliflower crust. There is no 10"
+  // regular pizza in Square — 10" is gluten-free only.
+  var SIZES = ['12"', '16"', '18"', 'GF 10"'];
 
   var state = {
     orders: [],       // active, newest first
@@ -51,7 +112,7 @@
     nextNumber: 215
   };
 
-  var draft = { items: [], size: "L", type: "takeout" };
+  var draft = { items: [], size: '16"', type: "takeout" };
 
   var gridEl, toastEl, toastTimer;
 
@@ -291,39 +352,63 @@
 
   /* ---------- add test order ---------- */
 
+  function money(n) { return "$" + n.toFixed(2); }
+
+  // The Square price for a menu item: pizzas price by size,
+  // everything else has one price. Returns 0 when not found
+  // (never blocks adding the item).
+  function menuPrice(name, category, size) {
+    for (var gi = 0; gi < MENU.length; gi++) {
+      var g = MENU[gi];
+      if (g.category !== category) continue;
+      for (var ii = 0; ii < g.items.length; ii++) {
+        if (g.items[ii].n === name) {
+          var p = g.items[ii].p;
+          return (typeof p === "object") ? (p[size] || 0) : p;
+        }
+      }
+    }
+    return 0;
+  }
+
   function renderDraft() {
     var wrap = $("draft-items");
     if (!draft.items.length) {
       wrap.innerHTML = '<div class="draft-empty">Tap items above to add them here.</div>';
     } else {
+      var total = 0;
       wrap.innerHTML = draft.items.map(function (it, i) {
+        total += it.qty * (it.price || 0);
         var label = (it.size ? it.size + " " : "") + it.name;
         return '<div class="draft-line"><span class="qty">' + it.qty + "×</span>" +
           '<span class="nm">' + esc(label) + "</span>" +
+          '<span class="draft-price">' + money(it.qty * (it.price || 0)) + "</span>" +
           '<button class="mini-btn" data-draft-minus="' + i + '" aria-label="Remove one">−</button>' +
           '<button class="mini-btn" data-draft-del="' + i + '" aria-label="Remove item">✕</button></div>';
-      }).join("");
+      }).join("") +
+      '<div class="draft-total">Total <b>' + money(total) + "</b></div>";
     }
     $("add-order-btn").disabled = draft.items.length === 0;
   }
 
   function addDraftItem(name, sized, category) {
     var size = sized ? draft.size : "";
+    var price = menuPrice(name, category, size);
     var found = null;
     draft.items.forEach(function (it) {
       if (it.name === name && it.size === size) found = it;
     });
     if (found) { found.qty += 1; } else {
-      draft.items.push({ qty: 1, size: size, name: name, category: category, mods: [] });
+      draft.items.push({ qty: 1, size: size, name: name, category: category, price: price, mods: [] });
     }
     renderDraft();
   }
 
   function openModal() {
-    draft = { items: [], size: "L", type: "takeout" };
+    draft = { items: [], size: '16"', type: "takeout" };
     $("name-input").value = "";
     document.querySelectorAll(".size-chip").forEach(function (chip) {
-      chip.classList.toggle("selected", chip.dataset.size === "L");
+      chip.classList.toggle("selected", chip.dataset.size === '16"');
     });
     document.querySelectorAll(".type-btn").forEach(function (btn) {
       btn.classList.toggle("selected", btn.dataset.type === "takeout");
@@ -363,9 +448,12 @@
     var host = $("pick-groups");
     host.innerHTML = MENU.map(function (g) {
       var btns = g.items.map(function (item) {
-        return '<button class="pick-btn" data-item="' + esc(item) +
+        var price = (typeof item.p === "object") ? item.p[draft.size] : item.p;
+        var label = esc(item.n) +
+          ((price || price === 0) ? ' <span class="pick-price">' + money(price) + "</span>" : "");
+        return '<button class="pick-btn" data-item="' + esc(item.n) +
           '" data-sized="' + (g.sized ? "1" : "0") +
-          '" data-category="' + esc(g.category) + '">' + esc(item) + "</button>";
+          '" data-category="' + esc(g.category) + '">' + label + "</button>";
       }).join("");
       return '<div class="pick-group"><h3>' + esc(g.group) + "</h3>" +
         '<div class="pick-grid">' + btns + "</div></div>";
@@ -409,6 +497,8 @@
         document.querySelectorAll(".size-chip").forEach(function (c) {
           c.classList.toggle("selected", c === chip);
         });
+        // Pizza prices on the pick buttons follow the size.
+        buildPickButtons();
       });
     });
 

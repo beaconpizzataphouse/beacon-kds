@@ -41,8 +41,34 @@ phone, or computer:
   device (localStorage), so a refresh keeps it. The URL parameter
   wins on load if one is present.
 - Every item carries a `category` (`pizza`, `wings`, `sandwich`,
-  `salad`, `side`, `drink`) — that is what the filter uses, not
-  the item name. An item with no category shows on both screens.
+  `pasta`, `salad`, `side`, `soup`, `dessert`, `drink`) — that is
+  what the filter uses, not the item name. An item with no
+  category shows on both screens.
+
+## Menu source (real data)
+
+The demo orders and the quick-pick form use the REAL Beacon menu
+from the Square catalog export `square-catalog-2026-11-21.csv`
+(351 active items), with real Square prices. Pizzas come in
+12"/16"/18" plus GF 10" cauliflower crust — there is no 10"
+regular pizza in Square. The 14 specialty pizzas are Mexican,
+BBQ Chicken, Beacon Supreme, Bernie, Build Your Own, Classic
+Pepperoni, Hawaiian, Jibe, Mediterranean, Spicy Luau, Tree
+Hugger, Ultimate Cheese, Buffalo Chicken, and Chicken Bacon
+Ranch. Sandwiches, wings (Bone-in + Boneless 5/10/15), pastas,
+the salad bar, apps/sides, soups, desserts and drinks are all
+from the same export.
+
+Known gaps in the export (need the Square API / OAuth later):
+wing flavor choices and extra-topping options are named only as
+modifier sets — the actual options and their prices aren't in
+the CSV, so demo mods like "BBQ" or "Extra cheese" are
+placeholders. Square also holds each gluten-free pizza twice
+(a "Regular" row and a "Gluten Free" row, $1 apart); the demo
+uses the "Gluten Free" row's price. Salad names in Square are
+just "All you can eat" / "Single Serve" / "To Go Salad" (it's a
+salad bar); the demo labels them "Salad Bar — …" so a ticket
+reads clearly.
 
 ## What it does
 
@@ -59,9 +85,11 @@ phone, or computer:
 - **Demo mode:** loads with 6 realistic sample orders at staggered
   ages so all three colors show. "Reset demo" restores them.
 - **Add test order:** "+ New order" opens a quick-pick form — pick
-  a pizza size, tap items (pizzas, wings, sandwiches, salads,
-  sides, drinks), type a name or table, choose dine-in/takeout,
-  add it to the board.
+  a pizza size (12"/16"/18"/GF 10"), tap items (pizzas, wings,
+  sandwiches, pastas, salads, apps & sides, soups, dessert,
+  drinks, all with real Square prices), type a name or table,
+  choose dine-in/takeout, add it to the board. The draft shows a
+  running total. Kitchen tickets themselves don't show prices.
 - State (open orders, bumped count) survives a page refresh via
   localStorage. A saved demo older than 3 hours is treated as
   stale and reseeded on the next load.
@@ -89,8 +117,12 @@ phone, or computer:
    or both?
 4. **Dine-in:** table numbers, customer names, or server names on
    tickets? (Demo uses "Table 4" style names.)
-5. **Menu check:** are the demo sizes (S/M/L/XL) and the specialty
-   pizzas right? Anything missing that the kitchen makes a lot?
+5. **Menu check — ANSWERED Nov 21 from the Square export.**
+   Sizes are 12"/16"/18" + GF 10" cauliflower crust (no 10"
+   regular); 14 specialty pizzas (the 12 expected plus Buffalo
+   Chicken and Chicken Bacon Ranch). Demo data now uses the real
+   menu. Still open: wing flavors and extra-topping options
+   aren't in the export — those need the Square API.
 6. **Bump behavior:** is one tap to bump right, or should bumping
    need a confirm (to avoid pocket-bumps)? And who bumps — the
    cook, the expo, or whoever's free?
