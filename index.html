@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121110">
+  <link rel="icon" href="data:,">
+  <title>Beacon Kitchen Display</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <div class="brand">BEACON <span>KITCHEN</span></div>
+    <div class="demo-badge">DEMO — NOT LIVE ORDERS</div>
+    <div class="header-stats">
+      <span class="clock" id="clock">--:--</span>
+      <span class="stat-open">OPEN <b id="open-count">0</b></span>
+      <span>BUMPED <b id="bumped-count">0</b></span>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="recall-btn" disabled>↩ Recall last</button>
+      <button class="btn" id="reset-btn">Reset demo</button>
+      <button class="btn btn-primary" id="new-order-btn">+ New order</button>
+    </div>
+  </header>
+
+  <main class="grid" id="grid"></main>
+
+  <!-- Add test order -->
+  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-label="Add test order">
+    <div class="modal">
+      <h2>Add a test order</h2>
+      <p class="hint">Pick a pizza size, then tap items to add them. Tap an item again to add another one.</p>
+
+      <div class="size-row">
+        <span class="lbl">Pizza size:</span>
+        <button class="size-chip" data-size="S">S</button>
+        <button class="size-chip" data-size="M">M</button>
+        <button class="size-chip selected" data-size="L">L</button>
+        <button class="size-chip" data-size="XL">XL</button>
+      </div>
+
+      <div id="pick-groups"></div>
+
+      <div class="order-draft">
+        <h3>This order</h3>
+        <div id="draft-items"></div>
+      </div>
+
+      <div class="form-row">
+        <input class="name-input" id="name-input" type="text" placeholder="Customer name or table (e.g. Table 4)" autocomplete="off">
+        <div class="type-toggle">
+          <button class="type-btn" data-type="dine-in">DINE-IN</button>
+          <button class="type-btn selected" data-type="takeout">TAKEOUT</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" id="cancel-btn">Cancel</button>
+        <button class="btn btn-green" id="add-order-btn" disabled>Add order to board</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="orders.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
